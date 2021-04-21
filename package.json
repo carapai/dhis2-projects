@@ -33,6 +33,7 @@
     "framer-motion": "^4.1.4",
     "react-grid-layout": "^1.2.4",
     "react-query": "^3.13.10",
-    "react-router-dom": "^5.2.0"
+    "react-router-dom": "^5.2.0",
+    "xstate": "^4.18.0"
   }
 }
