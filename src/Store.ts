@@ -4,7 +4,7 @@ import {
 } from "./Events";
 import { Store } from './types';
 
-export const dashboards = domain.createStore<Store>({
+export const messageStore = domain.createStore<Store>({
   message: ''
 })
   .on(changeMessage, (state, message: string) => {

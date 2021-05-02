@@ -6,13 +6,16 @@ import {
   SimpleGrid,
   Button,
   InputGroup,
-  InputRightElement
+  InputRightElement,
+  Text
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import { useD2 } from '../Context';
 import { useMutation } from 'react-query';
 import { fetchAndInsertMetaData } from '../Queries';
+import { useStore } from 'effector-react';
+import { messageStore } from '../Store';
 
 const TerminologySchema = Yup.object().shape({
   url: Yup.string().required("Required"),
@@ -25,6 +28,7 @@ const App = () => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const { mutateAsync } = useMutation(fetchAndInsertMetaData);
+  const store = useStore(messageStore)
 
   return (
     <Box pt="10px">
@@ -87,6 +91,7 @@ const App = () => {
           </Form>
         )}
       </Formik>
+      <Text>{store.message}</Text>
     </Box>
   )
 }
