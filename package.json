@@ -21,6 +21,7 @@
     "typescript": "^4.2.4"
   },
   "dependencies": {
+    "@chakra-ui/icons": "^1.0.12",
     "@chakra-ui/react": "^1.5.1",
     "@dhis2/analytics": "^16.0.19",
     "@dhis2/app-runtime": "^2.8.0",
