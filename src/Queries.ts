@@ -41,7 +41,7 @@ async function fetchAndInsertMetaData(data: any) {
   await insertMetadata(api, d2, ['dataElements', 'dataElementGroups', 'dataElementGroupSets']);
   await insertMetadata(api, d2, ['trackedEntityAttributes', 'trackedEntityTypes']);
   await insertMetadata(api, d2, ['programTrackedEntityAttributeGroups', 'programStageSections', 'programStages', 'programs', 'programSections', 'programIndicators', 'programIndicatorGroups', 'dataEntryForms']);
-  await insertMetadata(api, d2, ['programRules', 'programRuleVariables', 'programRuleActions']);
+  await insertMetadata(api, d2, ['programRules', 'programRuleVariables', 'programRuleActions','relationshipTypes']);
   await insertMetadata(api, d2, ['indicatorTypes', 'indicators', 'indicatorGroups', 'indicatorGroupSets']);
   await insertMetadata(api, d2, ['maps', 'mapViews', 'externalLayers']);
 
