@@ -13,6 +13,7 @@
   "devDependencies": {
     "@dhis2/cli-app-scripts": "^6.1.0",
     "@types/jest": "^26.0.22",
+    "@types/lodash": "^4.14.168",
     "@types/node": "^14.14.41",
     "@types/react": "^17.0.3",
     "@types/react-dom": "^17.0.3",
@@ -34,6 +35,7 @@
     "effector-react": "^21.3.2",
     "formik": "^2.2.6",
     "framer-motion": "^4.1.4",
+    "lodash": "^4.17.21",
     "react-grid-layout": "^1.2.4",
     "react-query": "^3.13.10",
     "react-router-dom": "^5.2.0",

@@ -3,9 +3,10 @@ import { usePrograms } from "../Queries";
 import { reportFilterStore } from "../Store";
 import { changeProgram } from '../Events'
 import { useD2 } from '../Context';
-import { Box, Select } from "@chakra-ui/react";
+import { Box, Select, Flex, Stack } from "@chakra-ui/react";
 import { ChangeEvent } from "react";
 import ProgramFilter from "./ProgramFilter";
+import TrackerData from "./TrackerData";
 
 const Reports = () => {
   const d2 = useD2()
@@ -14,12 +15,17 @@ const Reports = () => {
   return (
     <Box>
       {isLoading && <Box>Loading</Box>}
-      {isSuccess && <Box>
-        <Select placeholder="Select program" onChange={(e: ChangeEvent<HTMLSelectElement>) => changeProgram(e.target.value)} value={reportFilters.program}>
-          {data.map((program: any) => <option key={program.id} value={program.id}>{program.name}</option>)}
-        </Select>
-        {reportFilters.program && <ProgramFilter />}
-      </Box>}
+      {isSuccess && <Flex>
+        <Stack w="25%">
+          <Select mb="10px" placeholder="Select program" onChange={(e: ChangeEvent<HTMLSelectElement>) => changeProgram(e.target.value)} value={reportFilters.program}>
+            {Object.values(reportFilters.programs).map((program: any) => <option key={program.id} value={program.id}>{program.name}</option>)}
+          </Select>
+          {reportFilters.program && <ProgramFilter relationshipTypes={data.relationshipTypes} />}
+        </Stack>
+        <Box flex={1} p="10px">
+          {reportFilters.program && <TrackerData />}
+        </Box>
+      </Flex>}
       {isError && <Box>{error.message}</Box>}
     </Box>
   )
