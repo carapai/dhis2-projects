@@ -1,22 +1,51 @@
 import { useStore } from "effector-react";
-
-import { Box } from '@chakra-ui/react'
+import {
+  Box,
+  Button,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+} from '@chakra-ui/react'
 import { useD2 } from "../Context"
 import { useTracker } from "../Queries";
-import { reportFilterStore, programRelations } from "../Store";
+import { reportFilterStore } from "../Store";
 
 const TrackerData = () => {
   const reportFilters = useStore(reportFilterStore);
-  const relations = useStore(programRelations);
-
   const d2 = useD2();
-  const { isError, isLoading, isSuccess, data, error } = useTracker(d2, reportFilters.program, relations);
+  const {
+    isError,
+    isLoading,
+    isSuccess,
+    data,
+    refetch,
+    isFetching,
+    error
+  } = useTracker(
+    d2,
+    reportFilters.program,
+    reportFilters.stages,
+    reportFilters.programRelationships,
+    reportFilters.enrollmentRelationships
+  );
   return (
     <Box>
-      {isLoading && <Box>Loading</Box>}
-      {isSuccess && <Box>
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-      </Box>}
+      <Button disabled={reportFilters.selectedFields.length === 0} onClick={() => refetch()} isLoading={isLoading || isFetching}>Load</Button>
+      {isSuccess && <Table variant="simple">
+        <Thead>
+          <Tr>
+            {reportFilters.selectedFields.map((fields: any) => <Th key={fields.id}>{fields.display}</Th>)}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {data.map((d: any, index: number) => <Tr key={index}>
+            {reportFilters.selectedFields.map((fields: any) => <Td key={fields.id}>{d[fields.key]}</Td>)}
+          </Tr>)}
+        </Tbody>
+      </Table>}
       {isError && <Box>{error.message}</Box>}
     </Box>
   )

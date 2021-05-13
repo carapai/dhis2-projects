@@ -148,20 +148,30 @@ export const defaultFields = reportFilterStore.map((state) => {
   const a = flatten(Object.values(state.programs)
     .filter((program: any) => trackedEntities.indexOf(program.trackedEntityType.id) !== -1)
     .map((tt: any) => tt.trackedEntityType.trackedEntityTypeAttributes.map((a: any) => {
-      return { ...a.trackedEntityAttribute, name: `[PA] ${a.trackedEntityAttribute.name}` }
+      return {
+        ...a.trackedEntityAttribute,
+        display: a.trackedEntityAttribute.name,
+        key: a.trackedEntityAttribute.id,
+        name: `[PA] ${a.trackedEntityAttribute.name}`
+      }
     })));
 
   const b = flatten(Object.values(state.programs)
     .filter((program: any) => programs.indexOf(program.id) !== -1)
     .map((tt: any) => tt.programTrackedEntityAttributes.map((a: any) => {
-      return { ...a.trackedEntityAttribute, name: `[PA] ${a.trackedEntityAttribute.name}` }
+      return {
+        ...a.trackedEntityAttribute,
+        display: a.trackedEntityAttribute.name,
+        key: a.trackedEntityAttribute.id,
+        name: `[PA] ${a.trackedEntityAttribute.name}`
+      }
     })));
 
   const c = flatten(Object.values(state.programs).filter((p: any) => programsElement.indexOf(p.id) !== -1)
     .map((p: any) => p.programStages
       .map((ps: any) => {
         return ps.programStageDataElements.map((psde: any) => {
-          return { ...psde.dataElement, name: `[DE] ${psde.dataElement.name}` }
+          return { ...psde.dataElement, key: `${psde.dataElement.id}-${ps.id}`, display: psde.dataElement.name, name: `[DE-${ps.code}] ${psde.dataElement.name}` }
         })
       })));
 
@@ -170,30 +180,57 @@ export const defaultFields = reportFilterStore.map((state) => {
     .filter((ps: any) => stages.indexOf(ps.id) !== -1))
     .map((ps: any) => {
       return ps.programStageDataElements.map((psde: any) => {
-        return { ...psde.dataElement, name: `[DE] ${psde.dataElement.name}` }
+        return { ...psde.dataElement, key: `${psde.dataElement.id}-${ps.id}`, display: psde.dataElement.name, name: `[DE-${ps.code}] ${psde.dataElement.name}` }
       })
     });
-
-
 
   if (!!state.program) {
     const selectedStages = Object.keys(state.stages);
     const attributes = state.programs[state.program]?.programTrackedEntityAttributes.map((x: any) => {
       return {
         name: `[PA] ${x.trackedEntityAttribute.name}`,
-        id: x.trackedEntityAttribute.id
+        display: x.trackedEntityAttribute.name,
+        key: x.trackedEntityAttribute.id,
+        id: x.trackedEntityAttribute.id,
       }
-    })
+    });
     const elements = state.programs[state.program]?.programStages.filter((ps: any) => selectedStages.indexOf(ps.id) !== -1).map((ps: any) => {
-      return ps.programStageDataElements.map((psde: any) => {
+      const elements = ps.programStageDataElements.map((psde: any) => {
         return {
-          name: `[DE] ${psde.dataElement.name}`,
+          key: `${psde.dataElement.id}-${ps.id}`,
+          display: psde.dataElement.name,
+          name: `[DE-${ps.code || ps.name}] ${psde.dataElement.name}`,
           id: psde.dataElement.id
         }
-      })
+      });
+
+      return [
+        {
+          key: `eventDate-${ps.id}`,
+          display: `${ps.code || ps.name} Date`,
+          name: `${ps.code || ps.name} Date`,
+          id: `eventDate-${ps.id}`
+        },
+        ...elements
+      ]
     });
 
-    const allFields = uniqBy([...attributes, ...a, ...b, ...flatten(elements), ...flatten(c), ...flatten(d)], 'id');
+    const defaultFields = [
+      {
+        key: 'orgUnitName',
+        display: 'Organisation',
+        name: `[OU] Organisation`,
+        id: 'orgUnitName'
+      },
+      {
+        key: 'enrollmentDate',
+        display: 'Enrollment Date',
+        name: `[PE] Enrollment Date`,
+        id: 'enrollmentDate'
+      }
+    ]
+
+    const allFields = uniqBy([...defaultFields, ...attributes, ...a, ...b, ...flatten(elements), ...flatten(c), ...flatten(d)], 'id');
     return allFields.filter((field: any) => {
       return (String(field.name).toLowerCase().includes(state.filter.toLowerCase()) || String(field.id).includes(state.filter)) && state.selectedFields.map((f: any) => f.id).indexOf(field.id) === -1
     });

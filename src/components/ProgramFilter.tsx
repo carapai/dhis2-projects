@@ -12,7 +12,17 @@ import {
 } from '@chakra-ui/react';
 import { useStore } from "effector-react";
 import { ChangeEvent, FC } from "react";
-import { addEnrollmentRelation, addProgramRelation, addRelationship, addStage, changeOption, removeEnrollmentRelation, removeProgramRelation, removeRelationship, removeStage } from "../Events";
+import {
+  addEnrollmentRelation,
+  addProgramRelation,
+  addRelationship,
+  addStage,
+  changeOption,
+  removeEnrollmentRelation,
+  removeProgramRelation,
+  removeRelationship,
+  removeStage
+} from "../Events";
 import { reportFilterStore } from "../Store";
 import { Relation } from "../types";
 import Selection from "./Selection";

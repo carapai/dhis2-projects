@@ -7,7 +7,7 @@ export interface Relation {
   type?: string;
 }
 
-interface Options {
+export interface Options {
   whichEvents: 'any' | 'first' | 'last' | 'all'
   relationships: { [key: string]: Relation };
 }

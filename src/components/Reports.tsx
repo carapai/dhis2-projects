@@ -22,7 +22,7 @@ const Reports = () => {
           </Select>
           {reportFilters.program && <ProgramFilter relationshipTypes={data.relationshipTypes} />}
         </Stack>
-        <Box flex={1} p="10px">
+        <Box flex={1} px="10px" overflow="auto">
           {reportFilters.program && <TrackerData />}
         </Box>
       </Flex>}

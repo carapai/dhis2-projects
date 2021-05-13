@@ -1,6 +1,67 @@
-import { flatten, fromPairs } from 'lodash';
+import {
+  sortedUniqBy,
+  groupBy,
+  fromPairs
+} from 'lodash';
 import { useQuery } from 'react-query';
 import { changeCurrentProgram, loadPrograms, loadRelationshipTypes } from './Events';
+import { Relation, Options } from './types';
+
+const processRelations = (data: { [key: string]: any[] }, relationshipType: string, what: string) => {
+  const current = data[relationshipType];
+  if (!!current && current.length > 0 && what === 'entity') {
+    return fromPairs(current[0].from.trackedEntityType.attributes.map((a: any) => [a.attribute, a.value]));
+  }
+  if (!!current && current.length > 0 && what === 'program') {
+    return fromPairs(current[0].from.trackedEntityInstance.attributes.map((a: any) => [a.attribute, a.value]));
+  }
+  return {};
+}
+
+async function getEventRelationships(event: string, options: Options, api: any) {
+  let results = {};
+  const relationshipTypes = Object.keys(options.relationships);
+  if (relationshipTypes.length > 0) {
+    const relationships = await api.get('relationships', { event });
+    const trackerRelationObjects = groupBy(relationships, 'relationshipType');
+    relationshipTypes.forEach((p: string) => {
+      const currentRelationship = options.relationships[p];
+      results = { ...results, ...processRelations(trackerRelationObjects, p, currentRelationship.type) }
+    })
+  }
+  return results;
+}
+
+function availableEvents(events: any[], stageId: string, options: Options, api: any) {
+  const foundEvents = events.filter((ev: any) => ev.programStage === stageId);
+  const available = {
+    any: async () => {
+      const { eventDate, dataValues, event } = foundEvents[0];
+      const relationships = await getEventRelationships(event, options, api);
+      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+    },
+    first: async () => {
+      const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[0];
+      const relationships = await getEventRelationships(event, options, api);
+      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+    },
+    last: async () => {
+      const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[foundEvents.length - 1];
+      const relationships = await getEventRelationships(event, options, api);
+      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+    },
+    all: async () => {
+      let allEvents = [];
+      for (const { eventDate, dataValues, event } of foundEvents) {
+        const relationships = await getEventRelationships(event, options, api);
+        const processedEvent = { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) };
+        allEvents = [...allEvents, processedEvent]
+      }
+      return allEvents;
+    }
+  }
+  return available[options.whichEvents];
+}
 
 export function useReports(d2: any, program: string, orgUnit: string) {
   const api = d2.Api.getApi();
@@ -23,7 +84,7 @@ export function usePrograms(d2: any) {
     async () => {
       const [{ programs }, { relationshipTypes }] = await Promise.all([
         api.get(`programs`, {
-          fields: "id,name,displayName,programType,trackedEntityType[id,name,trackedEntityTypeAttributes[trackedEntityAttribute[id,name]]],programTrackedEntityAttributes[trackedEntityAttribute[id,name]],programStages[id,name,repeatable,programStageDataElements[dataElement[id,name]]]",
+          fields: "id,code,name,displayName,programType,trackedEntityType[id,code,name,trackedEntityTypeAttributes[trackedEntityAttribute[id,code,name]]],programTrackedEntityAttributes[trackedEntityAttribute[id,code,name]],programStages[id,code,name,repeatable,programStageDataElements[dataElement[id,code,name]]]",
           paging: false
         }),
         api.get(`relationshipTypes`, {
@@ -44,7 +105,7 @@ export function useProgram(d2: any, program: string) {
     ["programs", program],
     async () => {
       const currentProgram = await api.get(`programs/${program}.json`, {
-        fields: "id,name,displayName,programType,trackedEntityType[id,name,trackedEntityTypeAttributes[trackedEntityAttribute[id,name]]],programTrackedEntityAttributes[trackedEntityAttribute[id,name]],programStages[id,name,repeatable,programStageDataElements[dataElement[id,name]]]",
+        fields: "id,name,displayName,programType,trackedEntityType[id,code,name,trackedEntityTypeAttributes[trackedEntityAttribute[id,name]]],programTrackedEntityAttributes[trackedEntityAttribute[id,name]],programStages[id,name,code,repeatable,programStageDataElements[dataElement[id,name]]]",
       });
       changeCurrentProgram(currentProgram);
       return currentProgram;
@@ -100,22 +161,59 @@ export function useOtherPrograms(d2: any, trackedEntities: any[], programs: any[
   );
 }
 
-export const useTracker = (d2: any, program: string, relations: any) => {
+export const useTracker = (
+  d2: any,
+  program: string,
+  stages: { [key: string]: Options },
+  programRelationships: { [key: string]: Relation },
+  enrollmentRelationships: { [key: string]: Relation },
+) => {
   const api = d2.Api.getApi();
-  console.log(relations)
-  return useQuery<any, Error>(
-    ["tracker", program],
-    async () => {
-      const { trackedEntityInstances } = await api.get(`trackedEntityInstances.json`, {
-        fields: "attributes[attribute,value,displayName],relationships,enrollments[enrollmentDate,relationships,events[eventDate,relationships,dataValues[dataElement,value,displayName]]]",
-        ouMode: 'ALL',
-        program: program
-      });
+  return useQuery<any,
+    Error>(
+      ["tracker",
+        program],
+      async () => {
+        let data = [];
+        const { trackedEntityInstances } = await api.get(`trackedEntityInstances.json`, {
+          fields: "trackedEntityInstance,attributes[attribute,value],enrollments[enrollment,enrollmentDate,orgUnit,orgUnitName,program,events[event,programStage,eventDate,dataValues[dataElement,value,displayName]]]",
+          ouMode: 'ALL',
+          program: program
+        });
+        const pRelationsTypes = Object.keys(programRelationships);
+        const eRelationsTypes = Object.keys(enrollmentRelationships);
+        for (const { trackedEntityInstance, attributes, enrollments } of trackedEntityInstances) {
+          let calculatedFields = fromPairs(attributes.map((a: any) => [a.attribute, a.value]));
+          if (pRelationsTypes.length > 0) {
+            const trackerRelations = await api.get('relationships', { tei: trackedEntityInstance });
+            const trackerRelationObjects = groupBy(trackerRelations, 'relationshipType');
+            pRelationsTypes.map((p: string) => {
+              const currentRelationship = programRelationships[p];
+              calculatedFields = { ...calculatedFields, ...processRelations(trackerRelationObjects, p, currentRelationship.type) }
+            })
+          }
+          const { events, enrollment, orgUnitName, enrollmentDate } = enrollments.find((e: any) => e.program === program);
 
-      const relationships: string[] = flatten(trackedEntityInstances.map((tei: any) => tei.relationships.map((relationship: any) => relationship.relationshipType)));
-      console.log(relationships);
-      // const data = await Promise.all(relationships.map((r: string) => api.get(`relationships/${r}`)));
-      return trackedEntityInstances;
-    }
-  );
+          calculatedFields = { ...calculatedFields, orgUnitName, enrollmentDate }
+          if (eRelationsTypes.length > 0) {
+            const enrollmentRelations = await api.get('relationships', { enrollment });
+            const enrollmentRelationObjects = groupBy(enrollmentRelations, 'relationshipType');
+            eRelationsTypes.map((p: string) => {
+              const currentRelationship = enrollmentRelationships[p];
+              calculatedFields = { ...calculatedFields, ...processRelations(enrollmentRelationObjects, p, currentRelationship.type) }
+            })
+          }
+
+          for (const [stageId, info] of Object.entries(stages)) {
+            const eventData = await availableEvents(events, stageId, info, api)()
+            calculatedFields = { ...calculatedFields, enrollmentDate, ...eventData }
+          }
+          data = [...data, calculatedFields];
+        }
+        return data;
+      },
+      {
+        enabled: false
+      }
+    );
 }

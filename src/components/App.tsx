@@ -1,6 +1,7 @@
 import {
   Box,
-  HStack
+  HStack,
+  Text
 } from '@chakra-ui/react';
 import {
   HashRouter as Router,
@@ -16,10 +17,10 @@ const App = () => {
   return (
     <Router>
       <Box>
-        <HStack >
-          <Link to="/">Dashboard</Link>
-          <Link to="/reports">Reports</Link>
-          <Link to="/cohorts">Cohorts</Link>
+        <HStack h="48px" background="blackAlpha.400" p="10px">
+          <Link to="/"><Text fontSize="lg" textTransform="uppercase">Dashboard</Text></Link>
+          <Link to="/reports"><Text fontSize="lg" textTransform="uppercase">Reports</Text></Link>
+          <Link to="/cohorts"><Text fontSize="lg" textTransform="uppercase">Cohorts</Text></Link>
         </HStack>
         <Box p="10px">
           <Switch>
