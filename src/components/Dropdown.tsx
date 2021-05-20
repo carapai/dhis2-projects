@@ -10,23 +10,24 @@ import { IconType } from "react-icons";
 interface Item {
   id: string;
   label: string;
+  onClick?: () => void
 }
 
 interface DropdownOptions {
   Icon: IconType,
-  items: Item[]
+  items: Item[],
+
 }
 const Dropdown: FC<DropdownOptions> = ({ Icon, items }) => {
   return (
     <Menu placement="auto-start">
       <MenuButton
-        as={IconButton}
         aria-label="Options"
-        icon={<Icon />}
-        variant="outline"
-      />
+      >
+        <Icon fontSize="24px" />
+      </MenuButton>
       <MenuList>
-        {items.map(({ id, label }) => <MenuItem key={id} command="⌘T">
+        {items.map(({ id, label, onClick }) => <MenuItem key={id} command="⌘T" onClick={onClick}>
           {label}
         </MenuItem>)}
       </MenuList>
