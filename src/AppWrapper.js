@@ -1,6 +1,6 @@
 import { D2Shim } from "@dhis2/app-runtime-adapter-d2";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { ChakraProvider } from "@chakra-ui/react";
+import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 import App from "./components/App";
 import { D2Context } from "./Context";
 
@@ -14,6 +14,10 @@ const queryClient = new QueryClient({
 
 const d2Config = {};
 
+const theme = extendTheme({
+  components: { Button: { baseStyle: { _focus: { boxShadow: "none" } } } },
+});
+
 const AppWrapper = () => (
   <D2Shim d2Config={d2Config} i18nRoot="./i18n">
     {({ d2, error }) => {
@@ -23,7 +27,7 @@ const AppWrapper = () => (
           {!!d2 && (
             <QueryClientProvider client={queryClient}>
               <D2Context.Provider value={d2}>
-                <ChakraProvider>
+                <ChakraProvider theme={theme}>
                   <App />
                 </ChakraProvider>
               </D2Context.Provider>

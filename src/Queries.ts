@@ -34,33 +34,37 @@ async function getEventRelationships(event: string, options: Options, api: any) 
 
 function availableEvents(events: any[], stageId: string, options: Options, api: any) {
   const foundEvents = events.filter((ev: any) => ev.programStage === stageId);
-  const available = {
-    any: async () => {
-      const { eventDate, dataValues, event } = foundEvents[0];
-      const relationships = await getEventRelationships(event, options, api);
-      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
-    },
-    first: async () => {
-      const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[0];
-      const relationships = await getEventRelationships(event, options, api);
-      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
-    },
-    last: async () => {
-      const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[foundEvents.length - 1];
-      const relationships = await getEventRelationships(event, options, api);
-      return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
-    },
-    all: async () => {
-      let allEvents = [];
-      for (const { eventDate, dataValues, event } of foundEvents) {
+  if (foundEvents.length > 0) {
+
+    const available = {
+      any: async () => {
+        const { eventDate, dataValues, event } = foundEvents[0];
         const relationships = await getEventRelationships(event, options, api);
-        const processedEvent = { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) };
-        allEvents = [...allEvents, processedEvent]
+        return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+      },
+      first: async () => {
+        const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[0];
+        const relationships = await getEventRelationships(event, options, api);
+        return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+      },
+      last: async () => {
+        const { eventDate, dataValues, event } = sortedUniqBy(foundEvents, 'eventDate')[foundEvents.length - 1];
+        const relationships = await getEventRelationships(event, options, api);
+        return { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) }
+      },
+      all: async () => {
+        let allEvents = [];
+        for (const { eventDate, dataValues, event } of foundEvents) {
+          const relationships = await getEventRelationships(event, options, api);
+          const processedEvent = { ...relationships, [`eventDate-${stageId}`]: eventDate, ...fromPairs(dataValues.map(({ dataElement, value }) => [`${dataElement}-${stageId}`, value])) };
+          allEvents = [...allEvents, processedEvent]
+        }
+        return allEvents;
       }
-      return allEvents;
     }
+    return available[options.whichEvents];
   }
-  return available[options.whichEvents];
+  return async () => { };
 }
 
 export function useReports(d2: any, program: string, orgUnit: string) {

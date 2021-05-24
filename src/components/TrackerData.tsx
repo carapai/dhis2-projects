@@ -8,6 +8,9 @@ import {
   Tr,
   Th,
   Td,
+  HStack,
+  Flex,
+  Spacer,
 } from '@chakra-ui/react'
 import { useD2 } from "../Context"
 import { useTracker } from "../Queries";
@@ -33,7 +36,11 @@ const TrackerData = () => {
   );
   return (
     <Box>
-      <Button disabled={reportFilters.selectedFields.length === 0} onClick={() => refetch()} isLoading={isLoading || isFetching}>Load</Button>
+      <Flex>
+        <Button disabled={reportFilters.selectedFields.length === 0} onClick={() => refetch()} isLoading={isLoading || isFetching}>Load</Button>
+        <Spacer />
+        <Button disabled={!isSuccess || !data || data.length === 0}>Download</Button>
+      </Flex>
       {isSuccess && <Table variant="simple">
         <Thead>
           <Tr>
