@@ -7,7 +7,8 @@ import {
   Button,
   InputGroup,
   InputRightElement,
-  Text
+  Text,
+  Stack,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
@@ -91,7 +92,13 @@ const App = () => {
           </Form>
         )}
       </Formik>
-      <Text>{store.message}</Text>
+
+      <Box w="60%" m="auto">
+        <Text>{store.message}</Text>
+        <Stack>
+          {store.results.map((message: string) => <Text key={message}>{message}</Text>)}
+        </Stack>
+      </Box>
     </Box>
   )
 }
