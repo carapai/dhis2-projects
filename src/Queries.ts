@@ -11,7 +11,7 @@ const insertMetadata = async (api: AxiosInstance, d2: any, endPoint: string[], a
   try {
     const { data } = await api.get('metadata.json', { params: { ...endPoints, skipSharing: true, ...additionalParam } });
     let { system, ...rest } = data;
-    let { users, userGroups, options } = rest;
+    let { users, userGroups, options, visualizations } = rest;
     if (users && userGroups) {
       const admin = users.find((user: any) => !!user.userCredentials && user.userCredentials.username === 'admin');
       const withoutCredentials = users.filter((s: any) => !s.userCredentials).map((s: any) => s.id);
@@ -21,6 +21,10 @@ const insertMetadata = async (api: AxiosInstance, d2: any, endPoint: string[], a
         return { ...ug, users: gUsers }
       })
       rest = { ...rest, users, userGroups }
+    }
+    if (visualizations) {
+      visualizations = visualizations.filter((v: any) => !!v.name && !!v.type);
+      rest = { ...rest, visualizations }
     }
     if (options) {
       let c = 1
@@ -52,25 +56,28 @@ async function fetchAndInsertMetaData(data: any) {
       password,
     }
   });
-  await insertMetadata(api, d2, ['userRoles'], { fields: ':owner,!createdBy,!lastUpdatedBy', filter: 'name:neq:Superuser' });
-  await insertMetadata(api, d2, ['users', 'userGroups'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnitLevels'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:1', fields: ':owner,!geometry,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:2', fields: ':owner,!geometry,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:3', fields: ':owner,!geometry,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:4', fields: ':owner,!geometry,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:5', fields: ':owner,!geometry,!createdBy' });
-  await insertMetadata(api, d2, ['organisationUnitGroups', 'organisationUnitGroupSets'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['constants', 'attributes', 'categoryOptions', 'categories', 'categoryCombos', 'categoryOptionCombos', 'categoryOptionGroups', 'categoryOptionGroupSets'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['options'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['optionSets', 'optionGroups', 'optionGroupSets'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['legendSets', 'dataElements', 'dataElementGroups', 'dataElementGroupSets'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['trackedEntityAttributes', 'trackedEntityTypes'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['programNotificationTemplates', 'programTrackedEntityAttributeGroups', 'programStageSections', 'programStages', 'programs', 'programSections', 'programIndicators', 'programIndicatorGroups', 'dataEntryForms'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['programRules', 'programRuleVariables', 'programRuleActions', 'relationshipTypes'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['indicatorTypes', 'indicators', 'indicatorGroups', 'indicatorGroupSets'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['maps', 'mapViews', 'externalLayers'], { fields: ':owner,!createdBy' });
-  await insertMetadata(api, d2, ['dashboards'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['userRoles'], { fields: ':owner,!createdBy,!lastUpdatedBy', filter: 'name:neq:Superuser' });
+  // await insertMetadata(api, d2, ['users', 'userGroups'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnitLevels'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:1', fields: ':owner,!geometry,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:2', fields: ':owner,!geometry,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:3', fields: ':owner,!geometry,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:4', fields: ':owner,!geometry,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnits'], { filter: 'level:eq:5', fields: ':owner,!geometry,!createdBy' });
+  // await insertMetadata(api, d2, ['organisationUnitGroups', 'organisationUnitGroupSets'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['constants', 'attributes', 'categoryOptions', 'categories', 'categoryCombos', 'categoryOptionCombos', 'categoryOptionGroups', 'categoryOptionGroupSets'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['options'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['optionSets', 'optionGroups', 'optionGroupSets'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['legendSets', 'dataElements', 'dataElementGroups', 'dataElementGroupSets'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['trackedEntityAttributes', 'trackedEntityTypes'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['programNotificationTemplates', 'programTrackedEntityAttributeGroups', 'programStageSections', 'programStages', 'programs', 'programSections', 'programIndicators', 'programIndicatorGroups', 'dataEntryForms'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['programRules', 'programRuleVariables', 'programRuleActions', 'relationshipTypes'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['indicatorTypes', 'indicators', 'indicatorGroups', 'indicatorGroupSets'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['maps', 'mapViews', 'externalLayers'], { fields: ':owner,!createdBy' });
+  await insertMetadata(api, d2, ['visualizations'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, [, 'dataApprovalLevels'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['dataApprovalWorkflows'], { fields: ':owner,!createdBy' });
+  // await insertMetadata(api, d2, ['dataSets'], { fields: ':owner,!createdBy' });
 
   return "finished"
 }
