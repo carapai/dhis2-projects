@@ -17,12 +17,12 @@ const App = () => {
   return (
     <Router>
       <Box>
-        <HStack h="48px" background="blackAlpha.400" p="10px">
+        {/* <HStack h="48px" background="blackAlpha.400" p="10px">
           <Link to="/"><Text fontSize="lg" textTransform="uppercase">Dashboard</Text></Link>
           <Link to="/reports"><Text fontSize="lg" textTransform="uppercase">Reports</Text></Link>
           <Link to="/cohorts"><Text fontSize="lg" textTransform="uppercase">Cohorts</Text></Link>
-        </HStack>
-        <Box p="10px">
+        </HStack> */}
+        <Box>
           <Switch>
             <Route path="/reports">
               <Reports />

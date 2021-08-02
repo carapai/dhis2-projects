@@ -1,7 +1,8 @@
 import {
   sortedUniqBy,
   groupBy,
-  fromPairs
+  fromPairs,
+  uniq
 } from 'lodash';
 import { useQuery } from 'react-query';
 import { changeCurrentProgram, loadPrograms, loadRelationshipTypes } from './Events';
@@ -27,7 +28,7 @@ async function getEventRelationships(event: string, options: Options, api: any) 
     relationshipTypes.forEach((p: string) => {
       const currentRelationship = options.relationships[p];
       results = { ...results, ...processRelations(trackerRelationObjects, p, currentRelationship.type) }
-    })
+    });
   }
   return results;
 }
@@ -173,51 +174,110 @@ export const useTracker = (
   enrollmentRelationships: { [key: string]: Relation },
 ) => {
   const api = d2.Api.getApi();
-  return useQuery<any,
-    Error>(
-      ["tracker",
-        program],
-      async () => {
-        let data = [];
-        const { trackedEntityInstances } = await api.get(`trackedEntityInstances.json`, {
-          fields: "trackedEntityInstance,attributes[attribute,value],enrollments[enrollment,enrollmentDate,orgUnit,orgUnitName,program,events[event,programStage,eventDate,dataValues[dataElement,value,displayName]]]",
-          ouMode: 'ALL',
-          program: program
-        });
-        const pRelationsTypes = Object.keys(programRelationships);
-        const eRelationsTypes = Object.keys(enrollmentRelationships);
-        for (const { trackedEntityInstance, attributes, enrollments } of trackedEntityInstances) {
-          let calculatedFields = fromPairs(attributes.map((a: any) => [a.attribute, a.value]));
-          if (pRelationsTypes.length > 0) {
-            const trackerRelations = await api.get('relationships', { tei: trackedEntityInstance });
-            const trackerRelationObjects = groupBy(trackerRelations, 'relationshipType');
-            pRelationsTypes.map((p: string) => {
-              const currentRelationship = programRelationships[p];
-              calculatedFields = { ...calculatedFields, ...processRelations(trackerRelationObjects, p, currentRelationship.type) }
-            })
-          }
-          const { events, enrollment, orgUnitName, enrollmentDate } = enrollments.find((e: any) => e.program === program);
-
-          calculatedFields = { ...calculatedFields, orgUnitName, enrollmentDate }
-          if (eRelationsTypes.length > 0) {
-            const enrollmentRelations = await api.get('relationships', { enrollment });
-            const enrollmentRelationObjects = groupBy(enrollmentRelations, 'relationshipType');
-            eRelationsTypes.map((p: string) => {
-              const currentRelationship = enrollmentRelationships[p];
-              calculatedFields = { ...calculatedFields, ...processRelations(enrollmentRelationObjects, p, currentRelationship.type) }
-            })
-          }
-
-          for (const [stageId, info] of Object.entries(stages)) {
-            const eventData = await availableEvents(events, stageId, info, api)()
-            calculatedFields = { ...calculatedFields, enrollmentDate, ...eventData }
-          }
-          data = [...data, calculatedFields];
+  return useQuery<any, Error>(
+    ["tracker",
+      program],
+    async () => {
+      let data = [];
+      const { trackedEntityInstances } = await api.get(`trackedEntityInstances.json`, {
+        fields: "trackedEntityInstance,attributes[attribute,value],enrollments[enrollment,enrollmentDate,orgUnit,orgUnitName,program,events[event,programStage,eventDate,dataValues[dataElement,value,displayName]]]",
+        ouMode: 'ALL',
+        program: program
+      });
+      const pRelationsTypes = Object.keys(programRelationships);
+      const eRelationsTypes = Object.keys(enrollmentRelationships);
+      for (const { trackedEntityInstance, attributes, enrollments } of trackedEntityInstances) {
+        let calculatedFields = fromPairs(attributes.map((a: any) => [a.attribute, a.value]));
+        if (pRelationsTypes.length > 0) {
+          const trackerRelations = await api.get('relationships', { tei: trackedEntityInstance });
+          const trackerRelationObjects = groupBy(trackerRelations, 'relationshipType');
+          pRelationsTypes.map((p: string) => {
+            const currentRelationship = programRelationships[p];
+            calculatedFields = { ...calculatedFields, ...processRelations(trackerRelationObjects, p, currentRelationship.type) }
+          })
         }
-        return data;
-      },
-      {
-        enabled: false
+        const { events, enrollment, orgUnitName, enrollmentDate } = enrollments.find((e: any) => e.program === program);
+
+        calculatedFields = { ...calculatedFields, orgUnitName, enrollmentDate }
+        if (eRelationsTypes.length > 0) {
+          const enrollmentRelations = await api.get('relationships', { enrollment });
+          const enrollmentRelationObjects = groupBy(enrollmentRelations, 'relationshipType');
+          eRelationsTypes.map((p: string) => {
+            const currentRelationship = enrollmentRelationships[p];
+            calculatedFields = { ...calculatedFields, ...processRelations(enrollmentRelationObjects, p, currentRelationship.type) }
+          })
+        }
+        for (const [stageId, info] of Object.entries(stages)) {
+          const eventData = await availableEvents(events, stageId, info, api)()
+          calculatedFields = { ...calculatedFields, enrollmentDate, ...eventData }
+        }
+        data = [...data, calculatedFields];
       }
-    );
+      return data;
+    },
+    {
+      enabled: false
+    }
+  );
+}
+
+export const useTracker2 = (
+  d2: any,
+  program: string,
+  page: number,
+  pageSize: number
+) => {
+  const api = d2.Api.getApi();
+  return useQuery<any, Error>(
+    ["tracker", program, page, pageSize],
+    async () => {
+      let data = [];
+      const { trackedEntityInstances, ...others } = await api.get(`trackedEntityInstances.json`, {
+        fields: "*",
+        ouMode: 'ALL',
+        page,
+        pageSize,
+        program: program,
+        totalPages: true
+      });
+
+      const relations = trackedEntityInstances.map(({ relationships }: any) => {
+        const houseHold = relationships.find(({ relationshipType }: any) => relationshipType === "hly709n51z0");
+        if (houseHold) {
+          return houseHold.from.trackedEntityInstance.trackedEntityInstance
+        }
+      }).filter((x: any) => !!x);
+
+      let processedHouseholds = {};
+
+
+      if (relations.length > 0) {
+        const { trackedEntityInstances: households } = await api.get('trackedEntityInstances', { trackedEntityInstance: uniq(relations).join(';') });
+        processedHouseholds = fromPairs(households.map(({ attributes, trackedEntityInstance }: any) => {
+          return [trackedEntityInstance, fromPairs(attributes.map(({ attribute, value }: any) => [attribute, value]))]
+        }))
+      }
+
+
+      for (const { trackedEntityInstance, attributes, enrollments, relationships } of trackedEntityInstances) {
+        let calculatedFields: any = { ...fromPairs(attributes.map((a: any) => [a.attribute, a.value])), ['hly709n51z0']: {} };
+        const houseHold = relationships.find(({ relationshipType }: any) => relationshipType === "hly709n51z0");
+        if (houseHold) {
+          calculatedFields = { ...calculatedFields, ['hly709n51z0']: processedHouseholds[houseHold.from.trackedEntityInstance.trackedEntityInstance] }
+        }
+        const { events, orgUnitName, enrollmentDate } = enrollments.find((e: any) => e.program === program);
+        const eventGroups = groupBy(events, 'programStage');
+        const stageEvents = Object.entries(eventGroups).map(([stage, foundEvents]) => {
+          const processedEvents = foundEvents.map(({ dataValues }: any) => {
+            return fromPairs(dataValues.map((dv: any) => [dv.dataElement, dv.value]))
+          })
+          return [stage, { ...processedEvents }]
+        });
+        calculatedFields = { trackedEntityInstance, ...calculatedFields, orgUnitName, enrollmentDate: new Intl.DateTimeFormat('fr').format(Date.parse(enrollmentDate)), ...fromPairs(stageEvents) }
+        data = [...data, calculatedFields];
+      }
+      return { trackedEntityInstances: data, ...others.pager };
+    },
+    { keepPreviousData: true }
+  );
 }
