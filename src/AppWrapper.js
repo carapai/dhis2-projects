@@ -4,6 +4,9 @@ import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 import App from "./components/App";
 import { D2Context } from "./Context";
 
+import 'antd/dist/antd.css';
+
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
