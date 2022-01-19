@@ -17,44 +17,14 @@ const { RangePicker } = DatePicker
 
 const attributes = [
   {
-    id: 'r10igcWrpoH',
-    type: 'hh',
-    display: 'HH Code'
-  },
-  {
     id: 'HLKc2AKR9jW',
     type: 'attribute',
     display: 'Beneficiary Code'
   },
   {
-    id: 'huFucxA3e5c',
-    type: 'attribute',
-    display: 'Beneficiary Name'
-  },
-  {
-    id: 'Xkwy5P2JG24',
-    type: 'attribute',
-    display: 'Village'
-  },
-  {
-    id: 'orgUnitName',
-    type: 'attribute',
-    display: 'Parish'
-  },
-  {
-    id: 'N1nMqKtYKvI',
-    type: 'attribute',
-    display: 'Age'
-  },
-  {
-    id: 'CfpoFtRmK1z',
-    type: 'attribute',
-    display: 'Sex'
-  },
-  {
-    id: 'nDUbdM2FjyP',
-    type: 'attribute',
-    display: 'Risk Factor'
+    id: 'r10igcWrpoH',
+    type: 'hh',
+    display: 'HH Code'
   },
   {
     id: 'enrollmentDate',
@@ -62,17 +32,90 @@ const attributes = [
     display: 'Enrollment Date'
   },
   {
-    id: 'c5raACWHjjt',
-    type: 'event',
-    stage: 'TuLJEpHu0um',
-    index: 0,
-    display: 'Can Graduate'
+    id: 'district',
+    type: 'attribute',
+    display: 'District'
   },
   {
-    id: 'vBqh2aiuHOV',
+    id: 'subCounty',
+    type: 'attribute',
+    display: 'Sub County'
+  },
+  {
+    id: 'orgUnitName',
+    type: 'attribute',
+    display: 'Parish'
+  },
+  {
+    id: 'Xkwy5P2JG24',
+    type: 'hh',
+    display: 'Village'
+  },
+  {
+    id: 'ExnzeYjgIaT',
+    type: 'hh',
+    display: 'Household Head'
+  },
+  {
+    id: 'primaryCareGiver',
+    type: 'attribute',
+    display: 'Primary Care Giver'
+  },
+  {
+    id: 'assessmentDate',
+    type: 'attribute',
+    display: 'Data of Assessment'
+  },
+  {
+    id: 'huFucxA3e5c',
+    type: 'attribute',
+    display: 'Beneficiary Name'
+  },
+
+  {
+    id: 'N1nMqKtYKvI',
+    type: 'attribute',
+    display: 'Age'
+  },
+  {
+    id: 'ageGroup',
+    type: 'attribute',
+    display: 'Age Group'
+  },
+  {
+    id: 'CfpoFtRmK1z',
+    type: 'attribute',
+    display: 'Sex'
+  },
+  {
+    id: 'rQBaynepqjy',
     type: 'event',
-    stage: 'B9EI27lmQrZ',
-    index: 0,
+    stage: 'HaaSLv2ur0l',
+    display: 'Current Risk Factor'
+  },
+  {
+    id: 'tM67MBdox3O',
+    type: 'event',
+    stage: 'HaaSLv2ur0l',
+    display: 'Household Member Status'
+  },
+  {
+    id: 'y6hWo3aRoUR',
+    type: 'event',
+    stage: 'HaaSLv2ur0l',
+    display: 'Currenty Enrolled in School (Y/N)'
+  },
+
+  // {
+  //   id: 'c5raACWHjjt',
+  //   type: 'event',
+  //   stage: 'TuLJEpHu0um',
+  //   index: 0,
+  //   display: 'Can Graduate'
+  // },
+  {
+    id: 'currentHIV',
+    type: 'attribute',
     display: 'Current HIV status (+/-/?)'
   },
 ]
@@ -106,9 +149,6 @@ const findDisplay = (attribute: any, data: any) => {
 
   return obj[attribute.type]
 }
-
-
-
 
 const Dashboard = () => {
   const d2 = useD2();
@@ -187,7 +227,7 @@ const Dashboard = () => {
         {isSuccess && data && <Table variant="simple">
           <Thead>
             <Tr>
-              {attributes.map((i: any) => <Th key={i.id}>{i.display}</Th>)}
+              {attributes.map((i: any) => <Th key={i.id} minW="200px">{i.display}</Th>)}
             </Tr>
           </Thead>
           <Tbody>

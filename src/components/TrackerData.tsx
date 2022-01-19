@@ -8,7 +8,6 @@ import {
   Tr,
   Th,
   Td,
-  HStack,
   Flex,
   Spacer,
 } from '@chakra-ui/react'

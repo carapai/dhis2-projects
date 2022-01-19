@@ -1,12 +1,37 @@
+import { differenceInYears, parseISO } from 'date-fns';
 import {
-  sortedUniqBy,
-  groupBy,
-  fromPairs,
-  uniq
+  flatMap, fromPairs, groupBy, max,
+  maxBy, sortedUniqBy, uniq
 } from 'lodash';
 import { useQuery } from 'react-query';
 import { changeCurrentProgram, loadPrograms, loadRelationshipTypes } from './Events';
-import { Relation, Options } from './types';
+import { Options, Relation } from './types';
+
+const findAgeGroup = (age: number) => {
+  if (age <= 0) {
+    return '< 0'
+  }
+
+  if (age > 0 && age <= 4) {
+    return '1 - 4'
+  }
+  if (age > 4 && age <= 9) {
+    return '5 - 9'
+  }
+  if (age > 9 && age <= 14) {
+    return '10 - 14'
+  }
+  if (age > 14 && age <= 17) {
+    return '15 - 17'
+  }
+  if (age > 17 && age <= 20) {
+    return '18 - 20'
+  }
+
+  if (age >= 20) {
+    return '20+'
+  }
+}
 
 const processRelations = (data: { [key: string]: any[] }, relationshipType: string, what: string) => {
   const current = data[relationshipType];
@@ -203,6 +228,12 @@ export const useTracker = (
       const eRelationsTypes = Object.keys(enrollmentRelationships);
       for (const { trackedEntityInstance, attributes, enrollments } of trackedEntityInstances) {
         let calculatedFields = fromPairs(attributes.map((a: any) => [a.attribute, a.value]));
+        const primaryCareGiver = attributes.find((a: any) => a.attribute === 'nDUbdM2FjyP');
+        if (primaryCareGiver && primaryCareGiver.value === 'Primary caregiver') {
+          calculatedFields = { ...calculatedFields, primaryCareGiver: "1" }
+        } else {
+          calculatedFields = { ...calculatedFields, primaryCareGiver: "0" }
+        }
         if (pRelationsTypes.length > 0) {
           const trackerRelations = await api.get('relationships', { tei: trackedEntityInstance });
           const trackerRelationObjects = groupBy(trackerRelations, 'relationshipType');
@@ -254,8 +285,6 @@ export const useTracker2 = (
           fields: "*",
           ou: organisationUnits.join(';'),
           ouMode: 'DESCENDANTS',
-          programStartDate: periods[0],
-          programEndDate: periods[1],
           page,
           pageSize,
           program: program,
@@ -269,23 +298,79 @@ export const useTracker2 = (
         }).filter((x: any) => !!x);
 
         let processedHouseholds = {};
+        let assessmentDates = {};
+        const orgUnits = uniq(trackedEntityInstances.map(({ orgUnit }: any) => orgUnit));
+        const { organisationUnits: units } = await api.get('organisationUnits.json', { filter: `id:in:[${orgUnits.join(',')}]`, fields: 'id,parent[name,parent[name]]' });
+        const processedUnits = units.map((unit: any) => {
+          return [unit.id, { subCounty: unit.parent?.name, district: unit.parent?.parent?.name }]
+        });
 
+        const unitObject = fromPairs(processedUnits)
 
         if (relations.length > 0) {
-          const { trackedEntityInstances: households } = await api.get('trackedEntityInstances', { trackedEntityInstance: uniq(relations).join(';') });
+          const { trackedEntityInstances: households } = await api.get('trackedEntityInstances', { trackedEntityInstance: uniq(relations).join(';'), fields: 'trackedEntityInstance,attributes[attribute,value],enrollments[enrollment,events[eventDate]]' });
           processedHouseholds = fromPairs(households.map(({ attributes, trackedEntityInstance }: any) => {
             return [trackedEntityInstance, fromPairs(attributes.map(({ attribute, value }: any) => [attribute, value]))]
-          }))
+          }));
+
+          const dates: any = flatMap(households.map(({ trackedEntityInstance, enrollments }: any) => {
+            if (enrollments.length > 0) {
+              const [{ events }] = enrollments;
+              if (events.length > 0) {
+                const recentEvent: string = max(events.map((e: any) => e.eventDate));
+                return [[trackedEntityInstance, recentEvent ? new Intl.DateTimeFormat('fr').format(Date.parse(recentEvent)) : '']]
+              }
+            }
+            return []
+          }));
+          assessmentDates = fromPairs(dates);
         }
 
+        for (const { trackedEntityInstance, attributes, enrollments, relationships, orgUnit } of trackedEntityInstances) {
+          const organisation: any = unitObject[orgUnit]
+          const primaryCareGiver = attributes.find((a: any) => a.attribute === 'nDUbdM2FjyP');
+          const age = attributes.find((a: any) => a.attribute === 'N1nMqKtYKvI');
+          let calculatedFields: any = { ...fromPairs(attributes.map((a: any) => [a.attribute, a.value])), ['hly709n51z0']: {}, ...organisation };
+          if (primaryCareGiver && primaryCareGiver.value === 'Primary caregiver') {
+            calculatedFields = { ...calculatedFields, primaryCareGiver: "1" }
+          } else {
+            calculatedFields = { ...calculatedFields, primaryCareGiver: "0" }
+          }
 
-        for (const { trackedEntityInstance, attributes, enrollments, relationships } of trackedEntityInstances) {
-          let calculatedFields: any = { ...fromPairs(attributes.map((a: any) => [a.attribute, a.value])), ['hly709n51z0']: {} };
+          if (age && age.value.length === 10) {
+            calculatedFields = { ...calculatedFields, ageGroup: findAgeGroup(differenceInYears(parseISO(periods[1]), parseISO(age.value))) }
+          }
+
           const houseHold = relationships.find(({ relationshipType }: any) => relationshipType === "hly709n51z0");
           if (houseHold) {
-            calculatedFields = { ...calculatedFields, ['hly709n51z0']: processedHouseholds[houseHold.from.trackedEntityInstance.trackedEntityInstance] }
+            calculatedFields = { ...calculatedFields, ['hly709n51z0']: processedHouseholds[houseHold.from.trackedEntityInstance.trackedEntityInstance], assessmentDate: assessmentDates[houseHold.from.trackedEntityInstance.trackedEntityInstance] }
           }
           const { events, orgUnitName, enrollmentDate } = enrollments.find((e: any) => e.program === program);
+          let currentHIV = '?';
+
+          if (events) {
+            const vl = events.find((e: any) => e.programStage === 'kKlAyGUnCML');
+            if (vl) {
+              currentHIV = 'Positive';
+            }
+          }
+
+          if (currentHIV === '?') {
+            const hivRisk = maxBy(events.filter((e: any) => e.programStage === 'B9EI27lmQrZ'), (e: any) => e.eventDate);
+            const dv = hivRisk?.dataValues?.find((dv: any) => dv.dataElement === "vBqh2aiuHOV");
+            if (dv) {
+              currentHIV === dv.value
+            }
+          }
+
+          if (currentHIV === '?') {
+            const hivRisk = maxBy(events.filter((e: any) => e.programStage === 'HaaSLv2ur0l'), (e: any) => e.eventDate);
+            const dv = hivRisk?.dataValues?.find((dv: any) => dv.dataElement === "vBqh2aiuHOV");
+            if (dv) {
+              currentHIV === dv.value
+            }
+          }
+          calculatedFields = { ...calculatedFields, currentHIV };
           const eventGroups = groupBy(events, 'programStage');
           const stageEvents = Object.entries(eventGroups).map(([stage, foundEvents]) => {
             const processedEvents = foundEvents.map(({ dataValues }: any) => {
